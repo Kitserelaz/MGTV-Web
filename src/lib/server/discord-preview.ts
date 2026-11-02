@@ -1,9 +1,9 @@
-import type { APIComponentInContainer, APIMessageTopLevelComponent } from 'discord.js';
+import type { APIComponentInContainer, APIComponentInMessageActionRow, APIMessageTopLevelComponent, APISectionAccessoryComponent } from 'discord.js';
 import type { DisplayMessage } from './discord';
 import { addressToTitle } from '../wiki';
 import { removeNewsFooter } from '../news-text';
 
-const summary = (value: string, limit = 1000) => Array.from(value
+const summary = (value: string, limit = 2000) => Array.from(value
 	.replace(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]+/g, ' ')
 	.replace(/[^\S\n]+/g, ' ')
 	.replace(/\n{3,}/g, '\n\n')
@@ -41,19 +41,67 @@ export const feedPreview = (feed: string) => ({
 	type: 'website' as const
 });
 
-export const componentEmbed = (preview: NonNullable<App.PageData['preview']>) => {
+type PreviewButton = {
+	type: 2;
+	style: 5;
+	url: string;
+	label?: string;
+	emoji?: { id?: string; name?: string; animated?: boolean };
+	disabled?: boolean;
+};
+
+type MessageComponent = APIMessageTopLevelComponent | APIComponentInContainer | APIComponentInMessageActionRow | APISectionAccessoryComponent;
+
+export const messageLinkButtons = (components: readonly MessageComponent[]): PreviewButton[] => components.flatMap((component) => {
+	if (component.type === 1 || component.type === 17) return messageLinkButtons(component.components);
+	if (component.type === 9) return messageLinkButtons([...component.components, component.accessory]);
+	if (component.type !== 2 || component.style !== 5 || !('url' in component) || component.url.length > 512) return [];
+	try {
+		const url = new URL(component.url);
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') return [];
+	} catch {
+		return [];
+	}
+	if (!component.label && !component.emoji) return [];
+	return [{
+		type: 2 as const,
+		style: 5 as const,
+		url: component.url,
+		...(component.label ? { label: Array.from(component.label).slice(0, 80).join('') } : {}),
+		...(component.emoji ? { emoji: component.emoji } : {}),
+		...(component.disabled ? { disabled: true } : {})
+	}];
+});
+
+export const componentEmbed = (preview: NonNullable<App.PageData['preview']>, postUrl?: string, messageButtons: PreviewButton[] = []) => {
 	const description = Array.from(preview.description.replace(/@(everyone|here)/gi, '@\u200b$1'));
+	const title = preview.title.replace(/@(everyone|here)/gi, '@\u200b$1').replace(/[\\*_~`|]/g, '\\$&');
+	const text = [{ type: 10 as const, content: `**${title}**` }, { type: 10 as const, content: '…' }];
+	const view: PreviewButton = { type: 2, style: 5, label: 'View Post', url: postUrl ?? '' };
+	const join: PreviewButton = { type: 2, style: 5, label: 'Join Millenavia', url: 'https://discord.gg/fk4gPDeaCP' };
+	const selected: PreviewButton[] = [];
+	const rows = () => {
+		if (!postUrl) return [];
+		const buttons = [view, ...selected, join];
+		return Array.from({ length: Math.ceil(buttons.length / 5) }, (_, index) => ({
+			type: 1 as const,
+			components: buttons.slice(index * 5, index * 5 + 5)
+		}));
+	};
+	for (const button of messageButtons) {
+		if (selected.length >= 28) break;
+		selected.push(button);
+		if (Buffer.byteLength(JSON.stringify({ component: { type: 17, accent_color: 5793266, components: [...text, ...rows()] } })) > 3000) selected.pop();
+	}
 	const component = {
 		type: 17,
 		accent_color: 5793266,
-		components: [{ type: 10, content: '' }, { type: 10, content: '' }]
+		components: [...text, ...rows()]
 	};
-	const title = preview.title.replace(/@(everyone|here)/gi, '@\u200b$1').replace(/[\\*_~`|]/g, '\\$&');
-	component.components[0].content = `**${title}**`;
-	do {
-		component.components[1].content = description.join('');
-		if (Buffer.byteLength(JSON.stringify({ component })) <= 3000) break;
+	text[1].content = description.join('') || '…';
+	while (Buffer.byteLength(JSON.stringify({ component })) > 3000 && description.length) {
 		description.pop();
-	} while (description.length);
+		text[1].content = description.join('') || '…';
+	}
 	return { component };
 };
