@@ -20,7 +20,7 @@ test('post embeds include safe message link buttons between the post and invite 
 	const embed = componentEmbed(wikiPreview('Example', '😀'.repeat(1000)), 'https://example.com/posts/123', messageLinkButtons(components));
 	const rows = embed.component.components.filter((item) => item.type === 1);
 	const buttons = rows.flatMap((row) => row.components);
-	expect(buttons.map((button) => button.label)).toEqual(['View Post', 'Original Post', 'More', 'Join Millenavia']);
+	expect(buttons.map((button) => button.label)).toEqual(['View Post', 'Original Post', 'More', 'Join Millennavia']);
 	expect(buttons[0].url).toBe('https://example.com/posts/123');
 	expect(buttons[3].url).toBe('https://discord.gg/fk4gPDeaCP');
 	expect(Buffer.byteLength(JSON.stringify(embed))).toBeLessThanOrEqual(3000);

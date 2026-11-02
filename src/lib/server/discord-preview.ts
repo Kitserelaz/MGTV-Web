@@ -78,7 +78,7 @@ export const componentEmbed = (preview: NonNullable<App.PageData['preview']>, po
 	const title = preview.title.replace(/@(everyone|here)/gi, '@\u200b$1').replace(/[\\*_~`|]/g, '\\$&');
 	const text = [{ type: 10 as const, content: `**${title}**` }, { type: 10 as const, content: '…' }];
 	const view: PreviewButton = { type: 2, style: 5, label: 'View Post', url: postUrl ?? '' };
-	const join: PreviewButton = { type: 2, style: 5, label: 'Join Millenavia', url: 'https://discord.gg/fk4gPDeaCP' };
+	const join: PreviewButton = { type: 2, style: 5, label: 'Join Millennavia', url: 'https://discord.gg/fk4gPDeaCP' };
 	const selected: PreviewButton[] = [];
 	const rows = () => {
 		if (!postUrl) return [];
