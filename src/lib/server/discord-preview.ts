@@ -73,7 +73,33 @@ export const messageLinkButtons = (components: readonly MessageComponent[]): Pre
 	}];
 });
 
-export const componentEmbed = (preview: NonNullable<App.PageData['preview']>, postUrl?: string, messageButtons: PreviewButton[] = []) => {
+type GalleryItem = { media: { url: string }; description?: string; spoiler?: boolean };
+
+export const messageMedia = (message: DisplayMessage): GalleryItem[] => {
+	const items: GalleryItem[] = [];
+	const add = (url: string, description?: string | null, spoiler?: boolean) => {
+		const resolved = url.startsWith('attachment://') ? message.attachments[url.slice(13)] : url;
+		try {
+			const parsed = new URL(resolved);
+			if (!['http:', 'https:'].includes(parsed.protocol) || resolved.length > 2048 || !/\.(png|gif|jpe?g|webp|avif|mp4|webm|mov)$/i.test(parsed.pathname)) return;
+		} catch {
+			return;
+		}
+		items.push({ media: { url: resolved }, ...(description ? { description: description.slice(0, 1024) } : {}), ...(spoiler ? { spoiler: true } : {}) });
+	};
+	for (const attachment of message.ordinaryAttachments) add(attachment.url, attachment.description, attachment.spoiler);
+	const visit = (components: (APIMessageTopLevelComponent | APIComponentInContainer)[], spoiler = false) => {
+		for (const component of components) {
+			if (component.type === 17) visit(component.components, spoiler || !!component.spoiler);
+			if (component.type === 9 && component.accessory.type === 11) add(component.accessory.media.url, component.accessory.description, spoiler || component.accessory.spoiler);
+			if (component.type === 12) for (const item of component.items) add(item.media.url, item.description, spoiler || item.spoiler);
+		}
+	};
+	visit(message.components);
+	return items.slice(0, 10);
+};
+
+export const componentEmbed = (preview: NonNullable<App.PageData['preview']>, postUrl?: string, messageButtons: PreviewButton[] = [], media: GalleryItem[] = []) => {
 	const description = Array.from(preview.description.replace(/@(everyone|here)/gi, '@\u200b$1'));
 	const title = preview.title.replace(/@(everyone|here)/gi, '@\u200b$1').replace(/[\\*_~`|]/g, '\\$&');
 	const text = [{ type: 10 as const, content: `**${title}**` }, { type: 10 as const, content: '…' }];
@@ -93,10 +119,15 @@ export const componentEmbed = (preview: NonNullable<App.PageData['preview']>, po
 		selected.push(button);
 		if (Buffer.byteLength(JSON.stringify({ component: { type: 17, accent_color: 0x020089, components: [...text, ...rows()] } })) > 3000) selected.pop();
 	}
+	const gallery: GalleryItem[] = [];
+	for (const item of media.slice(0, 10)) {
+		gallery.push(item);
+		if (Buffer.byteLength(JSON.stringify({ component: { type: 17, accent_color: 0x020089, components: [...text, { type: 12, items: gallery }, ...rows()] } })) > 3000) gallery.pop();
+	}
 	const component = {
 		type: 17,
 		accent_color: 0x020089,
-		components: [...text, ...rows()]
+		components: [...text, ...(gallery.length ? [{ type: 12 as const, items: gallery }] : []), ...rows()]
 	};
 	text[1].content = description.join('') || '…';
 	while (Buffer.byteLength(JSON.stringify({ component })) > 3000 && description.length) {

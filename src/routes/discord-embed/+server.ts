@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { messages } from '../../lib/server/discord';
 import { getFeed } from '../../lib/server/feeds';
 import { getWiki } from '../../lib/server/wiki';
-import { componentEmbed, feedPreview, messageLinkButtons, postPreview, sitePreview, wikiPreview } from '../../lib/server/discord-preview';
+import { componentEmbed, feedPreview, messageLinkButtons, messageMedia, postPreview, sitePreview, wikiPreview } from '../../lib/server/discord-preview';
 import type { DisplayMessage } from '../../lib/server/discord';
 import type { RequestHandler } from './$types';
 
@@ -41,5 +41,5 @@ export const GET: RequestHandler = async ({ url }) => {
 
 	const postUrl = post ? new URL(path, url.origin) : undefined;
 	if (postUrl && (postUrl.origin !== url.origin || postUrl.href.length > 512)) error(400, 'Invalid post URL');
-	return json(componentEmbed(preview, postUrl?.href, post ? messageLinkButtons(post.components) : []));
+	return json(componentEmbed(preview, postUrl?.href, post ? messageLinkButtons(post.components) : [], post ? messageMedia(post) : []));
 };

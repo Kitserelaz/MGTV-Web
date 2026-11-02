@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { componentEmbed, messageLinkButtons, postPreview, wikiPreview } from '../src/lib/server/discord-preview';
+import { componentEmbed, messageLinkButtons, messageMedia, postPreview, wikiPreview } from '../src/lib/server/discord-preview';
 import type { DisplayMessage } from '../src/lib/server/discord';
 
 test('component embeds stay within Discord’s byte limit and neutralize mass mentions', () => {
@@ -38,4 +38,22 @@ test('post previews preserve line breaks and omit recurring footers and separato
 	expect(embed.component.components[0].content).toBe('**News from Reporter \\| MGTV24 News**');
 	expect(embed.component.components[1].content).toBe(preview.description);
 	expect(postPreview({ ...message, content: 'a'.repeat(2200) }).description).toHaveLength(2000);
+});
+
+test('post embeds include supported attachments and component media within the byte limit', () => {
+	const message = {
+		attachments: { 'clip.mp4': 'https://example.com/clip.mp4' },
+		ordinaryAttachments: [
+			{ url: 'https://example.com/image.png', description: 'An image', spoiler: true },
+			{ url: 'https://example.com/audio.mp3' }
+		],
+		components: [{ type: 17, components: [{ type: 12, items: [{ media: { url: 'attachment://clip.mp4' } }] }] }]
+	} as unknown as DisplayMessage;
+	const embed = componentEmbed(wikiPreview('Example', '😀'.repeat(1000)), 'https://example.com/posts/123', [], messageMedia(message));
+	const gallery = embed.component.components.find((item) => item.type === 12);
+	expect(gallery?.items).toEqual([
+		{ media: { url: 'https://example.com/image.png' }, description: 'An image', spoiler: true },
+		{ media: { url: 'https://example.com/clip.mp4' } }
+	]);
+	expect(Buffer.byteLength(JSON.stringify(embed))).toBeLessThanOrEqual(3000);
 });
