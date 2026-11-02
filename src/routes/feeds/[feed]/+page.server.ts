@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { getFeed } from '../../../lib/server/feeds';
 import { getNewsPage, parsePage } from '../../../lib/server/news';
+import { feedPreview } from '../../../lib/server/discord-preview';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -10,5 +11,5 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const query = url.searchParams.get('q')?.trim() ?? '';
 	const result = getNewsPage(page, query, feed.messages, false);
 	if (page > result.pageCount) error(404, 'Page not found');
-	return { page, query, feed: params.feed, ...result };
+	return { page, query, feed: params.feed, preview: feedPreview(params.feed), ...result };
 };

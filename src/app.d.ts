@@ -4,7 +4,9 @@ declare global {
 	namespace App {
 		// interface Error {}
 		// interface Locals {}
-		// interface PageData {}
+		interface PageData {
+			preview?: { title: string; description: string; type: 'website' | 'article' };
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

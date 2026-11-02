@@ -1,22 +1,39 @@
 <script lang="ts">
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
+	import { page } from '$app/state';
 
 	let { children }: LayoutProps = $props();
+	let preview = $derived(page.data.preview ?? {
+		title: 'MGTV24 News',
+		description: 'News and wiki pages from the MGTV24 community.',
+		type: 'website'
+	});
+	let embedUrl = $derived(`${page.url.origin}/discord-embed?path=${encodeURIComponent(page.url.pathname)}`);
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>{preview.title}</title>
+	<meta property="og:title" content={preview.title} />
+	<meta property="og:description" content={preview.description} />
+	<meta property="og:url" content={page.url.href} />
+	<meta property="og:type" content={preview.type} />
+	<link rel="discord:component-embed" type="application/json" href={embedUrl} />
 </svelte:head>
 
 <header>
 	<h1><a href="/">MGTV24 News</a></h1>
+	<a href="/wiki">Wiki</a>
 </header>
 
 {@render children()}
 
 <style>
 	header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
 		padding: 0 1rem;
 		color: white;
 	}
