@@ -4,7 +4,6 @@ import { addressToTitle } from '../wiki';
 import { removeNewsFooter } from '../news-text';
 
 const summary = (value: string, limit = 1000) => Array.from(value
-	.replace(/<a?:\w+:\d+>/g, '')
 	.replace(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]+/g, ' ')
 	.replace(/[^\S\n]+/g, ' ')
 	.replace(/\n{3,}/g, '\n\n')
