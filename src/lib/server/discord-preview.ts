@@ -91,11 +91,11 @@ export const componentEmbed = (preview: NonNullable<App.PageData['preview']>, po
 	for (const button of messageButtons) {
 		if (selected.length >= 28) break;
 		selected.push(button);
-		if (Buffer.byteLength(JSON.stringify({ component: { type: 17, accent_color: 0x000088, components: [...text, ...rows()] } })) > 3000) selected.pop();
+		if (Buffer.byteLength(JSON.stringify({ component: { type: 17, accent_color: 0x020089, components: [...text, ...rows()] } })) > 3000) selected.pop();
 	}
 	const component = {
 		type: 17,
-		accent_color: 0x000088,
+		accent_color: 0x020089,
 		components: [...text, ...rows()]
 	};
 	text[1].content = description.join('') || '…';
